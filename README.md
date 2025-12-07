@@ -1,60 +1,174 @@
-# Solar Clock Application with Leaflet
+# 🌍 NGØM World Clock
 
-A JavaScript application that displays a solar clock with greyline/shading to illustrate areas of darkness throughout the day. The application uses an ESRI base map through Leaflet, updates every 60 seconds, and shows the visitor's location with a green dot.
+A beautiful, interactive world clock displaying real-time zones and the International Date Line. Watch how time changes across the globe with dynamic timezone displays that update as you zoom and pan the map.
 
-## Features
+---
 
-- ESRI World Imagery basemap for high-quality satellite imagery
-- Accurate greyline/terminator shading showing day/night boundaries using Leaflet.Terminator
-- Real-time calculation of solar position
-- Geolocation to display the visitor's position with a green dot
-- Automatic updates every 60 seconds
-- Information panel showing current UTC time and visitor location
-- Loading indicators and error handling for better user experience
+## ✨ Features
 
-## Usage
+| Feature | Description |
+|---------|-------------|
+| 🗺️ **Interactive Map** | Pan and zoom to explore the world with smooth Leaflet mapping |
+| 🌅 **Day/Night Visualization** | Real-time day/night terminator showing the current sunrise/sunset line |
+| 📅 **International Date Line** | Visual marker for the date line at 180° meridian |
+| ⏰ **Dynamic Timezone Display** | Left and right edge panels automatically show the timezone/time for visible map regions |
+| 🧭 **Geolocation** | Automatic detection of your location with green dot marker |
+| 🎨 **Dark Theme** | Professional dark UI with USGS Topo colored terrain map |
+| 📱 **Responsive Design** | Works seamlessly on desktop and mobile browsers |
 
-Simply open the `index.html` file in any modern web browser. The application is completely self-contained and doesn't require any additional files or server setup.
+---
 
-When you open the file, you may need to allow location access if you want to see your position on the map. The application will still work without location access, but won't be able to show your position with the green dot.
+## 🚀 Quick Start
 
-## Technical Details
+### Option 1: Local Web Server (Recommended for Testing)
 
-### Leaflet Implementation
+```bash
+python3 server.py
+```
 
-The application uses Leaflet, a lightweight open-source JavaScript library for interactive maps. Key components:
+Then open your browser to: **http://localhost:8000**
 
-- Leaflet core library for map display and interaction
-- ESRI World Imagery tiles for the base map
-- Leaflet.Terminator plugin for day/night visualization
-- Leaflet's built-in geolocation capabilities
+### Option 2: Direct File Opening
+
+Simply open `index.html` directly in your web browser. No server required!
+
+### Option 3: Web Server Upload
+
+Upload the files to your web server and access via your domain.
+
+---
+
+## 🗂️ File Structure
+
+```
+geochron/
+├── index.html          # Main application (HTML, CSS, JavaScript)
+├── server.py           # Local Python web server for testing
+└── README.md          # This file
+```
+
+All functionality is contained in `index.html`. It's a single, self-contained application with no external dependencies beyond CDN-loaded libraries.
+
+---
+
+## 🎮 How to Use
+
+1. **View the World**: The map shows the entire globe with colored terrain
+2. **Zoom & Pan**: Use your mouse or trackpad to zoom in/out and pan around
+3. **Check Time Zones**:
+   - Left panel shows time/date for the region at the **left (western) edge**
+   - Right panel shows time/date for the region at the **right (eastern) edge**
+   - Center displays your **Local Time** and **UTC**
+4. **Notice the Date Line**: Orange dashed line at 180° shows where the date changes
+5. **Day/Night**: Dark overlay shows nighttime areas; light shows daytime
+
+---
+
+## 🌐 Technical Stack
+
+### Core Libraries (CDN-hosted)
+- **Leaflet.js** - Interactive mapping library
+- **Leaflet.Terminator** - Day/night visualization plugin
+- **USGS Topo Tiles** - Colored terrain basemap
+- **Stamen Toner Lines** - Border and boundary rendering
+
+### Features
+- **Pure JavaScript** - No build tools or dependencies required
+- **Browser Geolocation API** - Automatic location detection
+- **Real-time Updates** - Clock updates every second
+- **UTC-based Calculations** - Accurate timezone math for all regions
+
+---
+
+## 🔄 How It Works
+
+### Dynamic Timezone System
+
+When you zoom or pan the map, the left and right edge panels automatically calculate and display:
+
+1. **Map Bounds Detection** - Leaflet's `getBounds()` returns the visible area edges
+2. **Longitude Normalization** - Handles map wrapping across the antimeridian
+3. **Timezone Conversion** - Converts longitude to UTC offset (15° = 1 hour)
+4. **Time Calculation** - Adds timezone offset to UTC to show regional time
+5. **Date Display** - Properly handles date rollovers across the International Date Line
 
 ### Day/Night Visualization
 
-The application uses the Leaflet.Terminator plugin to accurately display the day/night boundary (terminator line). This plugin:
+The Leaflet.Terminator plugin calculates:
+- Current solar position based on real-time UTC
+- Day/night boundary polygon
+- Updates automatically every second
 
-- Calculates the solar position based on the current time
-- Creates a polygon representing the night side of Earth
-- Updates automatically every 60 seconds
+---
 
-### Geolocation
+## 🌍 Understanding the International Date Line
 
-The application uses the browser's Geolocation API through Leaflet to:
+The application correctly displays:
+- **West of Date Line** (left side) = **Tomorrow** in most of Asia/Pacific
+- **East of Date Line** (right side) = **Today** in the Americas
+- The date changes exactly at the 180° meridian (shown with orange dashed line)
 
-- Detect the visitor's current location
-- Display a green dot at that position
-- Update the location periodically
+---
 
-## Browser Compatibility
+## 📊 Browser Compatibility
 
-The application should work in all modern browsers, including:
-- Google Chrome
-- Mozilla Firefox
-- Microsoft Edge
-- Safari
+Works with all modern browsers:
+- ✅ Google Chrome (latest)
+- ✅ Mozilla Firefox (latest)
+- ✅ Microsoft Edge (latest)
+- ✅ Safari (latest)
+- ✅ Mobile browsers (iOS Safari, Chrome Android)
 
-## Credits
+---
 
-- Map implementation using Leaflet (https://leafletjs.com/)
-- Day/night visualization using Leaflet.Terminator (https://github.com/joergdietrich/Leaflet.Terminator)
-- Base map tiles from ESRI World Imagery
+## 🛠️ Development & Customization
+
+### Running Locally
+
+```bash
+# Start the web server
+python3 server.py
+
+# Visit in your browser
+http://localhost:8000
+
+# Press Ctrl+C to stop
+```
+
+### Customizing
+
+The `index.html` file contains:
+- **HTML** - Page structure and panels (lines 1-250)
+- **CSS** - Styling and layout (lines 13-203)
+- **JavaScript** - Map logic and timezone calculations (lines 258-550)
+
+Feel free to modify colors, fonts, or functionality. All code is self-contained and documented.
+
+---
+
+## 🔗 Resources
+
+- [Leaflet.js Documentation](https://leafletjs.com/)
+- [Leaflet.Terminator Plugin](https://github.com/joergdietrich/Leaflet.Terminator)
+- [USGS Basemap Services](https://basemap.nationalmap.gov/)
+- [Web Geolocation API](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation_API)
+
+---
+
+## 📝 License
+
+Free to use and modify for personal and commercial projects.
+
+---
+
+## 💡 Tips
+
+- **Zoom in to see state/provincial borders** - Borders become visible at zoom level 5+
+- **Check different timezones** - Pan the map to see how time changes by region
+- **Allow geolocation** - Browser will ask for permission to show your location
+- **Watch the terminator move** - The day/night line slowly moves west as time passes
+- **Notice the date change** - Pan across the date line and watch the dates flip
+
+---
+
+**Enjoy exploring the world and understanding global time zones!** 🌐⏰
