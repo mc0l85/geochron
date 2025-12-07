@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Clock</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+
+    <style>
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+            background: #000;
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: #000;
+        }
+
+        /* Top Header Bar */
+        .top-ruler {
+            height: 40px;
+            background: linear-gradient(to bottom, #1a1a1a, #0a0a0a);
+            border-bottom: 2px solid #2c3e50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+        }
+
+        .top-ruler-text {
+            color: #888;
+            font-size: 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+
+        .tick-mark {
+            height: 20px;
+            width: 1px;
+            background: #444;
+            margin: 0 8px;
+            opacity: 0.6;
+            display: none;
+        }
+
+        .tick-mark.major {
+            height: 30px;
+            opacity: 0.8;
+            background: #666;
+            display: none;
+        }
+
+        /* Main Map Area */
+        #mapContainer {
+            flex: 1;
+            position: relative;
+            background: #000;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+            position: absolute;
+            filter: brightness(0.65) contrast(1.15) saturate(0.95);
+        }
+
+        /* Bottom Info Panel - Geochron Style */
+        .bottom-panel {
+            height: 60px;
+            background: linear-gradient(to top, #0a0a0a, #1a1a1a);
+            border-top: 2px solid #2c3e50;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.8);
+            color: #fff;
+            font-size: 13px;
+        }
+
+        .info-section {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .time-display {
+            font-size: 16px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .time-label {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .date-display {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .center-brand {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            color: #4a9eff;
+            text-shadow: 0 0 10px rgba(74, 158, 255, 0.3);
+        }
+
+        /* Location Pin Styles */
+        .location-marker {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background-color: #ff6b35;
+            border: 2px solid white;
+            box-shadow: 0 0 8px rgba(255, 107, 53, 0.8);
+        }
+
+        .visitor-location {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #00ff00;
+            border: 2px solid white;
+            box-shadow: 0 0 8px rgba(0, 255, 0, 0.8);
+        }
+
+        /* Loading and Error Styles */
+        #loadingIndicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            background-color: rgba(20, 20, 20, 0.95);
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+            text-align: center;
+            border: 1px solid #2c3e50;
+            color: #fff;
+        }
+
+        #errorMessage {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background-color: rgba(200, 50, 50, 0.95);
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+            max-width: 400px;
+            border: 1px solid #8b0000;
+        }
+
+        .spinner {
+            border: 4px solid rgba(74, 158, 255, 0.2);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border-top-color: #4a9eff;
+            animation: spin 1s linear infinite;
+            margin: 15px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Navigation Controls */
+        .leaflet-control-container {
+            display: none;
+        }
+
+        /* Hide default Leaflet attribution to keep UI clean */
+        .leaflet-bottom {
+            display: none;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="top-ruler">
+            <div class="top-ruler-text">NGØM World Clock</div>
+        </div>
+
+        <div id="mapContainer">
+            <div id="map"></div>
+        </div>
+
+        <div class="bottom-panel">
+            <div class="info-section">
+                <div class="time-display" id="westTime">10:34:13</div>
+                <div class="time-label" id="westLabel">Mongolia</div>
+                <div class="date-display" id="westDate">May 07</div>
+            </div>
+
+            <div class="info-section">
+                <div class="time-display" id="localTime">10:34:13</div>
+                <div class="time-label" id="localLabel">Local Time</div>
+                <div class="date-display" id="localDay">Friday</div>
+            </div>
+
+            <div class="center-brand">NGØM</div>
+
+            <div class="info-section">
+                <div class="time-display" id="utcTime">16:34:13</div>
+                <div class="time-label" id="utcLabel">UTC</div>
+                <div class="date-display" id="utcDate">May 07</div>
+            </div>
+
+            <div class="info-section">
+                <div class="time-display" id="eastTime">10:34:13</div>
+                <div class="time-label" id="eastLabel">Pacific</div>
+                <div class="date-display" id="eastDate">May 06</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loadingIndicator">
+        <div class="spinner"></div>
+        <div>Loading Geochron...</div>
+    </div>
+    <div id="errorMessage"></div>
+    
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+    
+    <!-- Leaflet.Terminator plugin for day/night visualization -->
+    <script src="https://unpkg.com/@joergdietrich/leaflet.terminator@1.0.0/L.Terminator.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Get DOM elements
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const errorMessage = document.getElementById('errorMessage');
+            const westTimeElement = document.getElementById('westTime');
+            const westDateElement = document.getElementById('westDate');
+            const westLabelElement = document.getElementById('westLabel');
+            const localTimeElement = document.getElementById('localTime');
+            const localDayElement = document.getElementById('localDay');
+            const utcTimeElement = document.getElementById('utcTime');
+            const utcDateElement = document.getElementById('utcDate');
+            const eastTimeElement = document.getElementById('eastTime');
+            const eastDateElement = document.getElementById('eastDate');
+            const eastLabelElement = document.getElementById('eastLabel');
+
+            // Days of week
+            const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const monthsOfYear = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+            // Function to show error messages
+            function showError(message) {
+                console.error(message);
+                loadingIndicator.style.display = 'none';
+                errorMessage.textContent = message;
+                errorMessage.style.display = 'block';
+            }
+
+            // Function to format time as HH:MM:SS
+            function formatTime(date) {
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                const seconds = String(date.getSeconds()).padStart(2, '0');
+                return `${hours}:${minutes}:${seconds}`;
+            }
+
+            // Function to format date as "MMM DD"
+            function formatDateShort(date) {
+                const month = monthsOfYear[date.getMonth()].substring(0, 3);
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${month} ${day}`;
+            }
+
+            // Function to convert longitude to timezone offset (in hours)
+            function longitudeToTimezoneOffset(longitude) {
+                // Each 15 degrees of longitude = 1 hour of timezone
+                // Longitude ranges from -180 to 180
+                return Math.round(longitude / 15);
+            }
+
+            // Function to update the info panel with dynamic edge times
+            function updateInfoPanel() {
+                const now = new Date();
+
+                // Get the UTC time to use as basis for all timezone calculations
+                const utcTime = new Date(now.toLocaleString('en-US', { timeZone: 'UTC' }));
+
+                // Check if DOM elements exist
+                if (!westTimeElement || !localTimeElement || !utcTimeElement || !eastTimeElement) {
+                    return;
+                }
+
+                // Only calculate edge times if map is initialized and has bounds
+                // LEFT side of screen: To the LEFT of the date line = TOMORROW (positive timezone offsets)
+                // RIGHT side of screen: To the RIGHT of the date line = TODAY (negative timezone offsets)
+                let leftOffset = 8;    // Default to Mongolia (left/west of dateline - shows tomorrow)
+                let rightOffset = -12; // Default to Pacific (right/east of dateline - shows today)
+
+                if (typeof map !== 'undefined' && map.getBounds) {
+                    try {
+                        const bounds = map.getBounds();
+                        let west = bounds.getWest();
+                        let east = bounds.getEast();
+
+                        // Normalize longitude values to -180 to 180 range
+                        // Use proper wrapping: if value < -180, add 360; if > 180, subtract 360
+                        while (west < -180) west += 360;
+                        while (west > 180) west -= 360;
+                        while (east < -180) east += 360;
+                        while (east > 180) east -= 360;
+
+                        // Convert longitude to timezone offsets
+                        // Left display (westTimeElement) shows west edge (west of dateline = tomorrow)
+                        // Right display (eastTimeElement) shows east edge (east of dateline = today)
+                        leftOffset = longitudeToTimezoneOffset(west);
+                        rightOffset = longitudeToTimezoneOffset(east);
+                    } catch (e) {
+                        console.error('Could not get map bounds:', e);
+                    }
+                }
+
+                // Left edge time (west of dateline - higher timezone offset = tomorrow)
+                const leftDate = new Date(utcTime.getTime() + (leftOffset * 3600000));
+                westTimeElement.textContent = formatTime(leftDate);
+                if (westDateElement) westDateElement.textContent = formatDateShort(leftDate);
+
+                // Update left label with region name - use direct element reference
+                const leftRegions = {
+                    8: 'Mongolia', 7: 'Bangkok', 6: 'Bangkok', 5: 'Pakistan',
+                    4: 'UAE', 3: 'Moscow', 2: 'Cairo', 1: 'UK', 0: 'Iceland',
+                    '-1': 'Atlantic', '-5': 'EST', '-8': 'PST', '-12': 'Baker I.'
+                };
+                if (westLabelElement) {
+                    westLabelElement.textContent = leftRegions[leftOffset] || `UTC${leftOffset > 0 ? '+' : ''}${leftOffset}`;
+                }
+
+                // Local time (browser's local timezone)
+                localTimeElement.textContent = formatTime(now);
+                if (localDayElement) localDayElement.textContent = daysOfWeek[now.getDay()];
+
+                // UTC time (use the utcTime we already calculated)
+                utcTimeElement.textContent = formatTime(utcTime);
+                if (utcDateElement) utcDateElement.textContent = formatDateShort(utcTime);
+
+                // Right edge time (east of dateline - lower/negative timezone offset = today)
+                const rightDate = new Date(utcTime.getTime() + (rightOffset * 3600000));
+                eastTimeElement.textContent = formatTime(rightDate);
+                if (eastDateElement) eastDateElement.textContent = formatDateShort(rightDate);
+
+                // Update right label with region name - use direct element reference
+                const rightRegions = {
+                    8: 'Mongolia', 7: 'Bangkok', 6: 'Bangkok', 5: 'Pakistan',
+                    4: 'UAE', 3: 'Moscow', 2: 'Cairo', 1: 'UK', 0: 'Iceland',
+                    '-1': 'Atlantic', '-5': 'EST', '-8': 'PST', '-12': 'Pacific'
+                };
+                if (eastLabelElement) {
+                    eastLabelElement.textContent = rightRegions[rightOffset] || `UTC${rightOffset > 0 ? '+' : ''}${rightOffset}`;
+                }
+            }
+
+            // Declare map at function scope so updateInfoPanel can access it
+            let map;
+
+            try {
+                // Initialize Leaflet map - fit entire globe in view
+                map = L.map('map', {
+                    center: [0, 0],
+                    zoom: 1,
+                    minZoom: 1,
+                    maxZoom: 10,
+                    worldCopyJump: true,
+                    zoomControl: false,
+                    attributionControl: false
+                });
+
+                // Fit the entire world in view on load
+                map.fitBounds([[-85, -180], [85, 180]]);
+
+                // Add USGS Topo basemap with colorful terrain and English labels
+                L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: '',
+                    maxZoom: 16,
+                    minZoom: 0
+                }).addTo(map);
+
+                // Add pre-rendered borders tile layer (OpenStreetMap Boundaries)
+                // This handles wrapping across antimeridian properly since borders are baked into tiles
+                L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_toner_lines/{z}/{x}/{y}.png', {
+                    attribution: '',
+                    maxZoom: 16,
+                    minZoom: 0,
+                    opacity: 0.6
+                }).addTo(map);
+
+                // Add US state borders with thin black lines
+                fetch('https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json')
+                    .then(response => response.json())
+                    .then(usData => {
+                        L.geoJSON(usData, {
+                            style: {
+                                color: '#000000',
+                                weight: 0.75,
+                                opacity: 0.5,
+                                fillOpacity: 0
+                            }
+                        }).addTo(map);
+                    })
+                    .catch(err => console.log('US states load error:', err));
+
+                // Add day/night terminator with darker Geochron styling
+                const terminator = L.terminator({
+                    color: '#1a1a1a',
+                    fillColor: '#000000',
+                    fillOpacity: 0.6,
+                    resolution: 2
+                }).addTo(map);
+
+                // Add International Date Line demarkation
+                // The date line runs roughly along the 180° meridian
+                // Need to draw it on both sides due to map wrapping
+                const dateLineStyle = {
+                    color: '#FF6B35',
+                    weight: 2,
+                    opacity: 0.7,
+                    dashArray: '5, 10',
+                    lineCap: 'round',
+                    lineJoin: 'round'
+                };
+
+                // Create coordinates for date line (from south to north)
+                const dateLineCoordinates = [];
+                for (let lat = -85; lat <= 85; lat += 5) {
+                    dateLineCoordinates.push([lat, 180]);
+                }
+
+                // Draw date line on right side (at 180°)
+                const dateLineRight = L.polyline(dateLineCoordinates, dateLineStyle).addTo(map);
+                dateLineRight.bindPopup('<div style="color: #fff; background: #000; padding: 8px; border-radius: 4px;">International Date Line</div>');
+
+                // Draw date line on left side (at -180°, which is the same meridian wrapped)
+                const dateLineLeft = L.polyline(dateLineCoordinates.map(coord => [coord[0], -180]), dateLineStyle).addTo(map);
+                dateLineLeft.bindPopup('<div style="color: #fff; background: #000; padding: 8px; border-radius: 4px;">International Date Line</div>');
+
+                // Variables for visitor location
+                let visitorMarker = null;
+                let visitorLocation = null;
+
+                // Function to get visitor location
+                function getVisitorLocation() {
+                    map.locate({
+                        setView: false,
+                        maxZoom: 16,
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    });
+                }
+
+                // Handle successful location
+                function onLocationFound(e) {
+                    visitorLocation = e.latlng;
+
+                    // Remove previous marker if exists
+                    if (visitorMarker) {
+                        map.removeLayer(visitorMarker);
+                    }
+
+                    // Create green dot marker for visitor location
+                    visitorMarker = L.marker(visitorLocation, {
+                        icon: L.divIcon({
+                            className: 'visitor-location',
+                            iconSize: [12, 12]
+                        })
+                    }).addTo(map);
+
+                    // Center map on visitor location if first time
+                    if (!map.hasBeenCentered) {
+                        map.setView(visitorLocation, 3);
+                        map.hasBeenCentered = true;
+                    }
+                }
+
+                // Handle location errors
+                function onLocationError(e) {
+                    console.warn("Location error: " + e.message);
+                }
+
+                // Register location event handlers
+                map.on('locationfound', onLocationFound);
+                map.on('locationerror', onLocationError);
+
+                // Register map event handlers for zoom/pan
+                map.on('zoomend', updateInfoPanel);
+                map.on('moveend', updateInfoPanel);
+
+                // Function to update everything
+                function updateGeochron() {
+                    // Update terminator
+                    terminator.setTime();
+
+                    // Update visitor location
+                    getVisitorLocation();
+
+                    // Update time display
+                    updateInfoPanel();
+
+                    // Update page title
+                    const now = new Date();
+                    document.title = "World Clock - " + formatTime(now);
+
+                    console.log("World Clock updated at", formatTime(now));
+                }
+
+                // Hide loading indicator when map is ready
+                map.whenReady(function() {
+                    console.log("Geochron initialized successfully");
+                    loadingIndicator.style.display = 'none';
+
+                    // Initial update
+                    updateGeochron();
+
+                    // Set up auto-update every 1 second for smooth time display
+                    setInterval(updateGeochron, 1000);
+                });
+
+            } catch (error) {
+                showError("Error initializing Geochron: " + error.message);
+            }
+        });
+    </script>
+</body>
+</html>
